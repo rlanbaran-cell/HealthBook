@@ -1,0 +1,64 @@
+name: Build HealthBook APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          mkdir -p src
+          unzip -o HealthBookAndroid_v1.4_clean.zip -d src
+          echo "---- ساختار فایل‌ها ----"
+          find src -maxdepth 3 -type d
+          echo "---- دنبال gradlew می‌گردیم ----"
+          find src -name "gradlew" -type f
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Find project root
+        id: findroot
+        run: |
+          ROOT=$(find src -name "settings.gradle.kts" -o -name "settings.gradle" | head -1 | xargs dirname)
+          echo "root=$ROOT"
+          echo "root=$ROOT" >> $GITHUB_OUTPUT
+          ls -la "$ROOT"
+
+      - name: Build APK
+        run: |
+          cd "${{ steps.findroot.outputs.root }}"
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          else
+            gradle :app:assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Show APK location
+        run: find . -name "*.apk" -type f
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthBook-debug-apk
+          path: '**/build/outputs/apk/debug/*.apk'
