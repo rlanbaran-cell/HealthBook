@@ -50,16 +50,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build APK
-        run: |
-          cd "${{ steps.findroot.outputs.root }}"
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew :app:assembleDebug --stacktrace --no-daemon
-          else
-            gradle :app:assembleDebug --stacktrace --no-daemon
-          fi
+      -- name: Build APK
+  run: |
+    cd "${{ steps.findroot.outputs.root }}"
+    echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+    if [ -f gradlew ]; then
+      sed -i 's/\r$//' gradlew
+      chmod +x gradlew
+      sh gradlew :app:assembleDebug --stacktrace --no-daemon
+    else
+      gradle :app:assembleDebug --stacktrace --no-daemon
+    fi
 
       - name: Show APK location
         if: always()
